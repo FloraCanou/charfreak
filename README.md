@@ -1,0 +1,2 @@
+# charfreak
+Character frequency counter
