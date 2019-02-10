@@ -1,4 +1,4 @@
-/* Copyright 2019 Flora Canou | V. 1.0.0 | This file is part of CharFreak. 
+/* Copyright 2019 Flora Canou | V. 1.1.0 | This file is part of CharFreak. 
  * CharFreak is free software, licensed under the GNU General Public License, v. 3 or later. 
  * If you have not received a copy of the license, visit https://www.gnu.org/licenses/. */
 
@@ -10,8 +10,9 @@ int main (int argc, char *argv[])
 	showHeader ();
 	showOrderList ();
 	char order[sizef];
-	int total, distinct, counterState; //number of characters, number of distinct characters, state of counter
-	int charName[sizec], charNum[sizec]; //name and number of each character
+	int total, distinct; //number of characters, number of distinct characters
+	
+	Counter counter[sizec];
 	int setting[3] = {2, 0, 1}; // [0] character exclusion, [1] case sensitivity, [2] sorting method
 	if (loadSetting (setting))
 		printf ("\nCannot access charfreak.conf for saved settings. Loading default. \n");
@@ -57,12 +58,12 @@ int main (int argc, char *argv[])
 		}
 		else
 		{
-			switch (charfreakCount (order, setting[0], setting[1], charName, charNum, &distinct, &total)) //counting
+			switch (charfreakCount (order, setting[0], setting[1], counter, &distinct, &total)) //counting
 			{
 				case 0:
 					printf ("Analysis successful. \n");
-					charfreakSort (setting[2], charName, charNum, &distinct); //sorting
-					showCounter (charName, charNum, distinct, total); //output
+					charfreakSort (setting[2], counter, &distinct); //sorting
+					showCounter (counter, distinct, total); //output
 					break;
 				case 1:
 					printf ("Cannot open this file. \n");
@@ -103,45 +104,41 @@ int saveSetting (int setting[])
 	return 0;
 }
 
-/* Sorting */
-void charfreakSort (int sortMethod, int charName[], int charNum[], int *distinct)
+/* Two-column insertion sort with respect to name or number */
+void charfreakSort (int sortMethod, Counter counter[], int *distinct)
 {
+	int i, j;
+	Counter key;
 	switch (sortMethod)
 	{
 		case 1: //by name
-			insertionSortPartial (charName, charNum, *distinct);
+			for (i = 1; i < *distinct; i++)
+			{
+				key = counter[i];
+				for (j = i-1; j >= 0 && counter[j].name > key.name; j--)
+					counter[j+1] = counter[j];
+				counter[j+1] = key;
+			}
 			break;
 		case 2: //by frequency
-			insertionSortPartial (charNum, charName, *distinct);
-	}
-}
-
-/* Two-argument insertion sort with respect to the first argument
- * The second argument just follows */
-void insertionSortPartial (int arr[], int arrf[], int n)
-{
-	int i, key, j; int keyf;
-	for (i = 1; i < n; i++)
-	{
-		key = arr[i]; keyf = arrf[i];
-		j = i-1;
-		while (j >= 0 && arr[j] > key)
-		{
-			arr[j+1] = arr[j]; arrf[j+1] = arrf[j];
-			j--;
-		}
-		arr[j+1] = key; arrf[j+1] = keyf;
+			for (i = 1; i < *distinct; i++)
+			{
+				key = counter[i];
+				for (j = i-1; j >= 0 && counter[j].num > key.num; j--)
+					counter[j+1] = counter[j];
+				counter[j+1] = key;
+			}
 	}
 }
 
 /* Show counter in console */
-void showCounter (int charName[], int charNum[], int distinct, int total)
+void showCounter (Counter counter[], int distinct, int total)
 {
 	printf ("The sample contains %d distinct character(s) in %d character(s). \n", distinct, total);
 	printf ("  Code\t  Name\t  Num.\t  Freq.\n");
 	for (int i = 0; i < distinct; i++)
 	{
-		printf ("%6lx\t   %lc \t%5d\t%6.3f%%\n", charName[i], charName[i], charNum[i], 100*(float)charNum[i]/total);
+		printf ("%6lx\t   %lc \t%5d\t%6.3f%%\n", counter[i].name, counter[i].name, counter[i].num, 100*(float)counter[i].num/total);
 	}
 }
 

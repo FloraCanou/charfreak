@@ -1,10 +1,10 @@
-/* Copyright 2019 Flora Canou | V. 1.0.0 | This file is part of CharFreak. 
+/* Copyright 2019 Flora Canou | V. 1.1.0 | This file is part of CharFreak. 
  * CharFreak is free software, licensed under the GNU General Public License, v. 3 or later. 
  * If you have not received a copy of the license, visit https://www.gnu.org/licenses/. */
 
 #include "charfreak.h"
 
-int charfreakCount (char filename[], int exclSetting, int caseSetting, int charName[], int charNum[], int *distinct, int *total)
+int charfreakCount (char filename[], int exclSetting, int caseSetting, Counter counter[], int *distinct, int *total)
 {
 	//read file
 	FILE *fpr;
@@ -12,7 +12,7 @@ int charfreakCount (char filename[], int exclSetting, int caseSetting, int charN
 		return 1; //fails to read
 	
 	//counting
-	clearCounter (charName, charNum, distinct, total);
+	clearCounter (counter, distinct, total);
 	wint_t current; //current character
 	bool distinctMark = true; //mark for distinct character
 	int bomState = 0; //fvck Windows Notepad
@@ -26,7 +26,7 @@ int charfreakCount (char filename[], int exclSetting, int caseSetting, int charN
 				bomState = 4; //turns out BOM isn't present
 			if (bomState == 3) //turns out BOM is present
 			{
-				clearCounter (charName, charNum, distinct, total);
+				clearCounter (counter, distinct, total);
 				bomState = 4;
 				continue;
 			}
@@ -34,13 +34,13 @@ int charfreakCount (char filename[], int exclSetting, int caseSetting, int charN
 		if (excl (exclSetting, current)) continue; //character exclusion
 		current = caseSetting ? current : caseConv (current); //case conversion
 		
-		(*total)++;
+		++*total;
 		distinctMark = true;
 		for (int i = 0; i < *distinct; i++)
 		{
-			if (current == charName[i])
+			if (current == counter[i].name)
 			{
-				charNum[i]++;
+				counter[i].num++;
 				distinctMark = false;
 			}
 		}
@@ -48,9 +48,9 @@ int charfreakCount (char filename[], int exclSetting, int caseSetting, int charN
 		{
 			if (*distinct < sizec)
 			{
-				charName[*distinct] = current;
-				charNum[*distinct] = 1;
-				(*distinct)++;
+				counter[*distinct].name = current;
+				counter[*distinct].num = 1;
+				++*distinct;
 			}
 			else
 			{
@@ -86,14 +86,14 @@ wint_t caseConv (wint_t current)
 }
 
 /* Clear counter */
-void clearCounter (int charName[], int charNum[], int *distinct, int *total)
+void clearCounter (Counter *counter, int *distinct, int *total)
 {
 	*total = 0;
 	*distinct = 0;
 	for (int i = 0; i < sizec; i++)
 	{
-		charName[i] = '\0';
-		charNum[i] = 0;
+		counter[i].name = '\0';
+		counter[i].num = 0;
 	}
 }
 

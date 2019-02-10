@@ -12,18 +12,17 @@
 #define	sizef	256
 #define	sizec	256
 
-int charfreakCount (char*, int, int, int*, int*, int*, int*);
+typedef struct Counter {int name; int num;} Counter; //stores name and number of each character
+int charfreakCount (char*, int, int, Counter*, int*, int*);
 bool excl (int, wint_t);
 wint_t caseConv (wint_t);
-void clearCounter (int*, int*, int*, int*);
+void clearCounter (Counter*, int*, int*);
 int loadSetting (int*);
 int saveSetting (int*);
-void charfreakSort (int, int*, int*, int*);
-void insertionSortPartial (int*, int*, int n);
-void showCounter (int*, int*, int, int);
+void charfreakSort (int, Counter*, int*);
+void showCounter (Counter*, int, int);
 void showSetting (int*);
 void showOrderList ();
 void showHeader ();
 
 #endif
-
