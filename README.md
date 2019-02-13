@@ -6,32 +6,34 @@ Character frequency counter
 
 This program counts characters and gives their respective frequencies in a text sample. 
 
-Currently works in Linux only. In Windows it gives wrong results for reasons unknown. 
-
 ## Features
 
-- Effective exclusion of UTF-8 BOM
+- Accepting UTF-8 text sample of any length
 
-- Optional exclusion of spaces, all punctuation marks or all non-alphabetical characters
+- Effective exclusion of BOM
+
+- Optional filter of spaces, all punctuation marks or all non-alphabetical characters
 
 - Optional case sensitivity
 
 - Optional sorting method
 
-## How to Compile
+- Automatic resize of counter
 
-Run `compile.sh`. 
+## How to Build
+
+Linux: Run `compile.sh`. 
+
+Windows: Install [MSYS2](https://www.msys2.org/) and GCC. Run `compile.bat`. 
 
 ## To Do List (Maybe)
 
-- Explicit UTF-8 reading algorithm (so as to support Windows)
+- Explicit UTF-8 reading algorithm (so as to enhance portability)
 
-- UTF-16 support (another way to support Windows)
+- UTF-16 support
 
 - Saving results to file
 
 - Passing command-line arguments
-
-- Dynamic memory allocation (if possible)
 
 - Manual page
