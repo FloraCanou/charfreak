@@ -4,69 +4,65 @@
 
 #include "charfreak.h"
 
-int charfreakCount (char filename[], int exclSetting, int caseSetting, Counter counter[], int *distinct, int *total)
+int charfreak_count (char filename[], int filter_tp_setting, int case_setting, Counter counter[], int *distinct, int *total)
 {
-	//read file
+	//reading file
 	FILE *fpr;
 	if ((fpr = fopen (filename, "r")) == NULL)
 		return 1; //fails to read
 	
 	//counting
-	clearCounter (counter, distinct, total);
+	clear_counter (counter, distinct, total);
 	wint_t current; //current character
-	bool distinctMark = true; //mark for distinct character
-	int bomState = 0; //fvck Windows Notepad
+	bool bom_state = false; //fvck Windows Notepad
 	while ((current = fgetwc (fpr)) != WEOF)
 	{
-		if (bomState != 4) //checks UTF-8 BOM and excludes it if present
+		if (!bom_state) //BOM exclusion
 		{
-			if (bomState == 0 && current == 0xEF || bomState == 1 && current == 0xBB || bomState == 2 && current == 0xBF)
-				bomState++; //match
-			else
-				bomState = 4; //turns out BOM isn't present
-			if (bomState == 3) //turns out BOM is present
-			{
-				clearCounter (counter, distinct, total);
-				bomState = 4;
+			bom_state = true;
+			if (current == 0xFEFF)
 				continue;
-			}
 		}
-		if (excl (exclSetting, current)) continue; //character exclusion
-		current = caseSetting ? current : caseConv (current); //case conversion
+		if (filter_tp (filter_tp_setting, current)) //character filter on type
+			continue;
+		current = case_setting ? current : case_conv (current); //case conversion
 		
+		if (place_current (current, counter, distinct) == -1) //placing
+		{
+			fclose (fpr);
+			return 2; //exceeds size of counter
+		}
 		++*total;
-		distinctMark = true;
-		for (int i = 0; i < *distinct; i++)
-		{
-			if (current == counter[i].name)
-			{
-				counter[i].num++;
-				distinctMark = false;
-			}
-		}
-		if (distinctMark)
-		{
-			if (*distinct < sizec)
-			{
-				counter[*distinct].name = current;
-				counter[*distinct].num = 1;
-				++*distinct;
-			}
-			else
-			{
-				fclose (fpr);
-				return 2; //exceeds size of counter
-			}	
-		}
 	}
 	fclose (fpr);
 	return 0;
 }
 
-/* Character exclusion */
-bool excl (int exclSetting, wint_t current)
+/* Places the current character into the counter */
+int place_current (wint_t current, Counter *counter, int *distinct)
 {
-	switch (exclSetting)
+	for (int i = 0; i < *distinct; i++)
+	{
+		if (current == counter[i].name)
+		{
+			counter[i].num++;
+			return i; //into counter[i]
+		}
+	}
+	if (*distinct < size_counter)
+	{
+		counter[*distinct].name = current;
+		counter[*distinct].num = 1;
+		++*distinct;
+		return (*distinct - 1); //into a new place
+	}
+	return -1; //exceeds size of counter
+}
+
+/* Character exclusion */
+bool filter_tp (int filter_tp_setting, wint_t current)
+{
+	switch (filter_tp_setting)
 	{
 		case 3:
 			return (iswalpha (current) == 0);
@@ -80,20 +76,19 @@ bool excl (int exclSetting, wint_t current)
 }
 
 /* Case conversion */
-wint_t caseConv (wint_t current)
+wint_t case_conv (wint_t current)
 {
 	return (towlower (towupper (current)));
 }
 
-/* Clear counter */
-void clearCounter (Counter *counter, int *distinct, int *total)
+/* Clears the counter */
+void clear_counter (Counter *counter, int *distinct, int *total)
 {
 	*total = 0;
 	*distinct = 0;
-	for (int i = 0; i < sizec; i++)
+	for (int i = 0; i < size_counter; i++)
 	{
 		counter[i].name = '\0';
 		counter[i].num = 0;
 	}
 }
-
