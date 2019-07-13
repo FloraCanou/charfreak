@@ -21,11 +21,12 @@ bool filter_tp (int, wint_t);
 wint_t case_conv (wint_t);
 void clear_counter (Counter*, int*, int*);
 int load_setting (int*);
-int save_setting (int*);
+int edit_setting (int*);
 void charfreak_sort (int, Counter*, int);
-void show_counter (Counter*, int, int);
-void show_setting (int*);
-void show_order_list ();
+void charfreak_output (char*, int, Counter*, int, int);
+void show_setting (int*, int);
+void show_order_list_main ();
+void show_order_list_setting ();
 void show_header ();
 
 #endif

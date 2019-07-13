@@ -1,4 +1,4 @@
-/* Copyright 2019 Flora Canou | V. 1.1.0 | This file is part of CharFreak. 
+/* Copyright 2019 Flora Canou | V. 1.2.0 | This file is part of CharFreak. 
  * CharFreak is free software, licensed under the GNU General Public License, v. 3 or later. 
  * If you have not received a copy of the license, visit https://www.gnu.org/licenses/. */
 
@@ -8,7 +8,7 @@ int main (int argc, char *argv[])
 {
 	setlocale (LC_ALL, "C.UTF-8");
 	show_header ();
-	show_order_list ();
+	show_order_list_main ();
 	
 	char order[SIZE_FILE];
 	int total, distinct; //number of characters, number of distinct characters
@@ -16,16 +16,11 @@ int main (int argc, char *argv[])
 	size_counter = SIZE_DEFAULT; //size of counter
 	if ((counter = malloc (size_counter * sizeof (Counter))) == NULL) //allocates memory
 		return 1;
-	int setting[3]; // [0] character filter, [1] case sensitivity, [2] sorting method
+	int setting[4] = {2, 0, 1, 0}; // [0] character filter, [1] case sensitivity, [2] sorting method, [3] output method
 	if (load_setting (setting))
-	{
 		printf ("\nCannot access charfreak.conf for saved settings. Loading default. \n");
-		setting[0] = 2;
-		setting[1] = 0;
-		setting[2] = 1;
-	}	
-	printf ("\n");
-	show_setting (setting);
+	printf ("\nCurrent settings: \n");
+	show_setting (setting, 1 + 2 + 4 + 8);
 	
 	while (1)
 	{
@@ -37,29 +32,14 @@ int main (int argc, char *argv[])
 			{
 				case 'q':
 					return 0;
-				case 'e':
-					setting[0] = (setting[0] + 1) % 4;
-					show_setting (setting);
-					break;
-				case 'r':
-					setting[1] = (setting[1] + 1) % 2;
-					show_setting (setting);
-					break;
-				case 't':
-					setting[2] = (setting[2] + 1) % 3;
-					show_setting (setting);
-					break;
-				case 's':
-					if (save_setting (setting) == 0)
-						printf ("Saved to charfreak.conf. \n");
-					else
-						printf ("Cannot access charfreak.conf. \n");
-					break;
+				case 'a':
+					edit_setting (setting);
 				case 'z':
-					show_setting (setting);
+					printf ("Current settings: \n");
+					show_setting (setting, 1 + 2 + 4 + 8);
 					break;
 				default:
-					show_order_list ();
+					show_order_list_main ();
 			}
 		}
 		else //order to read a file
@@ -70,7 +50,7 @@ int main (int argc, char *argv[])
 				case 0:
 					printf ("Analysis successful. \n");
 					charfreak_sort (setting[2], counter, distinct); //sorting
-					show_counter (counter, distinct, total); //output
+					charfreak_output (order, setting[3], counter, distinct, total); //output
 					break;
 				case 1:
 					printf ("Cannot open this file. \n");
@@ -112,23 +92,61 @@ int load_setting (int setting[])
 	
 	int temp;
 	fscanf (fpr, "%x", &temp);
-	setting[0] = temp % 4;
-	setting[1] = temp / 4 % 4;
-	setting[2] = temp / 16 % 4;
+	for (int i = 0; i < 4; i++)
+		setting[i] = (temp >> (2*i)) % 4;
 	fclose (fpr);
 	return 0;
 }
 
-/* Save settings to charfreak.conf */
-int save_setting (int setting[])
+/* Edit settings */
+int edit_setting (int setting[])
 {
-	FILE *fpw;
-	if ((fpw = fopen ("charfreak.conf", "w")) == NULL)
-		return 1; //fails to write
-	
-	fprintf (fpw, "%x\nDo not edit this unless you know what you're doing. \n", (setting[0]+4*(setting[1]+4*setting[2])));
-	fclose (fpw);
-	return 0;
+	show_order_list_setting ();
+	char order[SIZE_FILE];
+	while (1)
+	{
+		printf ("\n> ");
+		scanf ("%s", order);
+		FILE *fpw;
+		switch (order[1])
+		{
+			case 'q':
+				return 0;
+			case 'w':
+				setting[0] = (setting[0] + 1) % 4;
+				show_setting (setting, 1);
+				break;
+			case 'e':
+				setting[1] = (setting[1] + 1) % 2;
+				show_setting (setting, 2);
+				break;
+			case 'r':
+				setting[2] = (setting[2] + 1) % 3;
+				show_setting (setting, 4);
+				break;
+			case 't':
+				setting[3] = (setting[3] + 1) % 3;
+				show_setting (setting, 8);
+				break;
+			case 's': //save settings
+				if ((fpw = fopen ("charfreak.conf", "w")) != NULL)
+				{
+					int temp = 0;
+					for (int i = 0; i < 4; i++)
+						temp = (temp << 2) + setting[i];
+					fprintf (fpw, "%x\nDo not edit this unless you know what you're doing. \n", temp);
+					fclose (fpw);
+					printf ("Saved to charfreak.conf. \n");
+					return 0;
+				}
+				else
+					printf ("Cannot access charfreak.conf. \n"); //fails to write
+				break;
+			default:
+				show_order_list_setting ();
+		}
+		order[0] = '\0'; //clears order
+	}
 }
 
 /* Two-column insertion sort with respect to name or number */
@@ -158,79 +176,128 @@ void charfreak_sort (int sortMethod, Counter counter[], int distinct)
 	}
 }
 
-/* Show counter in console */
-void show_counter (Counter counter[], int distinct, int total)
+/* Output */
+void charfreak_output (char order[], int outputMethod, Counter counter[], int distinct, int total)
 {
-	printf ("The sample contains %d distinct character(s) in %d character(s). \n", distinct, total);
-	printf ("  Code\t  Name\t  Num.\t  Freq.\n");
-	for (int i = 0; i < distinct; i++)
+	if (outputMethod == 0 || outputMethod == 2)
 	{
-		printf ("%6lx\t   %lc \t%5d\t%6.3f%%\n", counter[i].name, counter[i].name, counter[i].num, 100*(float)counter[i].num/total);
+		printf ("The sample contains %d distinct character(s) in %d character(s). \n", distinct, total);
+		printf ("  Code\t  Name\t  Num.\t  Freq.\n");
+		for (int i = 0; i < distinct; i++)
+			printf ("%6lx\t   %lc \t%5d\t%6.3f%%\n", counter[i].name, counter[i].name, counter[i].num, 100*(float)counter[i].num/total);
+	}
+	if (outputMethod == 1 || outputMethod == 2)
+	{
+		FILE *fpw;
+		if ((fpw = fopen (strcat (order, "_charfreak.txt"), "w")) != NULL)
+		{
+			fprintf (fpw, "The sample contains %d distinct character(s) in %d character(s). \n", distinct, total);
+			fprintf (fpw, "  Code\t  Name\t  Num.\t  Freq.\n");
+			for (int i = 0; i < distinct; i++)
+				fprintf (fpw, "%6lx\t   %lc \t%5d\t%6.3f%%\n", counter[i].name, counter[i].name, counter[i].num, 100*(float)counter[i].num/total);
+			fclose (fpw);
+			printf ("Saved to %s. \n", order);
+		}
+		else
+			printf ("Cannot save to file. \n"); //fails to write
 	}
 }
 
-void show_setting (int setting[])
+void show_setting (int setting[], int show_setting_switch)
 {
-	printf ("Current settings: \n");
-	switch (setting[0])
+	if (show_setting_switch % 2)
 	{
-		case 3: 
-			printf ("Filter out:\tanything but alphabet\n");
-			break;
-		case 2: 
-			printf ("Filter out:\tpunctuation marks\n");
-			break;
-		case 1: 
-			printf ("Filter out:\tspaces\n");
-			break;
-		case 0:
-			printf ("Filter out:\tnone\n");
-			break;
-		default: 
-			printf ("Filter out:\t[not recognized]\n");
+		switch (setting[0])
+		{
+			case 3: 
+				printf ("Filter out:\tanything but alphabet\n");
+				break;
+			case 2: 
+				printf ("Filter out:\tpunctuation marks\n");
+				break;
+			case 1: 
+				printf ("Filter out:\tspaces\n");
+				break;
+			case 0:
+				printf ("Filter out:\tnone\n");
+				break;
+			default: 
+				printf ("Filter out:\t[not recognized]\n");
+		}
 	}
-	switch (setting[1])
+	if ((show_setting_switch >> 1) % 2)
 	{
-		case 1:
-			printf ("Case sense:\ton\n");
-			break;
-		case 0:
-			printf ("Case sense:\toff\n");
-			break;
-		default:
-			printf ("Case sense:\t[not recognized]\n");
+		switch (setting[1])
+		{
+			case 1:
+				printf ("Case sense:\ton\n");
+				break;
+			case 0:
+				printf ("Case sense:\toff\n");
+				break;
+			default:
+				printf ("Case sense:\t[not recognized]\n");
+		}
 	}
-	switch (setting[2])
+	if ((show_setting_switch >> 2) % 2)
 	{
-		case 2: 
-			printf ("Sorting:\tby frequency\n");
-			break;
-		case 1: 
-			printf ("Sorting:\tby name\n");
-			break;
-		case 0:
-			printf ("Sorting:\tnone\n");
-			break;
-		default: 
-			printf ("Sorting:\t[not recognized]\n");
+		switch (setting[2])
+		{
+			case 2: 
+				printf ("Sort method:\tby frequency\n");
+				break;
+			case 1: 
+				printf ("Sort method:\tby name\n");
+				break;
+			case 0:
+				printf ("Sort method:\tnone\n");
+				break;
+			default: 
+				printf ("Sort method:\t[not recognized]\n");
+		}
+	}
+	if ((show_setting_switch >> 3) % 2)
+	{
+		switch (setting[3])
+		{
+			case 2:
+				printf ("Output method:\tshow & save\n");
+				break;
+			case 1:
+				printf ("Output method:\tsave to file\n");
+				break;
+			case 0:
+				printf ("Output method:\tshow on screen\n");
+				break;
+			default:
+				printf ("Output method:\t[not recognized]\n");
+		}
 	}
 }
 
-void show_order_list ()
+void show_order_list_main ()
 {
 	printf ("filename\tRead text sample, *UTF-8 only*\n"
-		"\"/e\"\t\tToggle character filter policy\n"
-		"\"/r\"\t\tToggle case sensitivity\n"
-		"\"/t\"\t\tToggle sorting method\n"
-		"\"/s\"\t\tSave current settings as default\n"
-		"\"/z\"\t\tShow current settings\n"
 		"\"/q\"\t\tQuit\n"
-		"\"/\" + any other single character to show this list\n");
+		"\"/a\"\t\tEdit settings\n"
+		"\"/z\"\t\tShow current settings\n"
+		"\"/\" + any other character(s) to show this list\n");
+}
+
+void show_order_list_setting ()
+{
+	printf ("\"/q\"\t\tDone editing\n"
+		"\"/w\"\t\tToggle character filter policy\n"
+		"\"/e\"\t\tToggle case sensitivity\n"
+		"\"/r\"\t\tToggle sorting method\n"
+		"\"/t\"\t\tToggle output method\n"
+		"\"/s\"\t\tSave current settings as default\n"
+		"\"/\" + any other character(s) to show this list\n");
 }
 
 void show_header ()
 {
-	printf ("\nCharFreak - character frequency counter v. 1.1.0\n"
+	printf ("\nCharFreak - character frequency counter v. 1.2.0\n"
 		"Copyright 2019 Flora Canou (floracanou@qq.com)\n"
  		"This program is licensed under the GNU General Public License, v. 3 or later. \n"
  		"To view a copy of the license, visit https://www.gnu.org/licenses/. \n\n");
