@@ -18,7 +18,7 @@ This program counts characters and gives their respective frequencies in a text 
 
 - Optional sorting method
 
-- Automatic resize of counter
+- Automatic counter resize
 
 ## How to Build
 
@@ -31,8 +31,6 @@ Windows: Install [MSYS2](https://www.msys2.org/) and GCC. Run `compile.bat`.
 - Explicit UTF-8 reading algorithm (so as to enhance portability)
 
 - UTF-16 support
-
-- Saving results to file
 
 - Passing command-line arguments
 

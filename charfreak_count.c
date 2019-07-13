@@ -1,4 +1,4 @@
-/* Copyright 2019 Flora Canou | V. 1.1.0 | This file is part of CharFreak. 
+/* Copyright 2019 Flora Canou | V. 1.2.0 | This file is part of CharFreak. 
  * CharFreak is free software, licensed under the GNU General Public License, v. 3 or later. 
  * If you have not received a copy of the license, visit https://www.gnu.org/licenses/. */
 
